@@ -14,14 +14,14 @@ import lombok.NoArgsConstructor;
 public class Airbnb {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id ;
+    private Long id ;
 
     private String name;
 
     private String description;
 
     @Column(nullable = false)
-    private String pricePerNight;
+    private Long pricePerNight;
 
     private String location;
 }

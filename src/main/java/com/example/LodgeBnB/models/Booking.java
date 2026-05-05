@@ -14,14 +14,15 @@ import lombok.NoArgsConstructor;
 public class Booking {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private String id;
-
-    private String userId;
+    private Long id;
 
     @Column(nullable = false)
-    private String airbnbId;
+    private Long userId;
 
-    private String totalPrice;
+    @Column(nullable = false)
+    private Long airbnbId;
+
+    private Long totalPrice;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

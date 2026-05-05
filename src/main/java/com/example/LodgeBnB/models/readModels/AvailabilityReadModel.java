@@ -1,28 +1,22 @@
-package com.example.LodgeBnB.models;
+package com.example.LodgeBnB.models.readModels;
 
-import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity
+@Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
-public class Availability {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+public class AvailabilityReadModel {
     private Long id;
 
-    @Column(nullable = false)
     private Long airbnbId;
 
-    @Column(nullable = false)
     private String date;
 
     private Long bookingId;
 
+    private Boolean isAvailable;
 }
-
