@@ -17,7 +17,7 @@ public class IdempotencyService implements IIdempotencyService{
 
     @Override
     public boolean isIdempotencyKeyUsed(String idempotencyKey) {
-        return false;
+        return this.findBookingByIdempotencyKey(idempotencyKey).isPresent();
     }
 
     @Override

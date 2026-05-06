@@ -9,6 +9,7 @@ import com.example.LodgeBnB.repositories.reads.RedisWriteRepository;
 import com.example.LodgeBnB.repositories.writes.AirbnbWriteRepository;
 import com.example.LodgeBnB.repositories.writes.AvailabilityWriteRepository;
 import com.example.LodgeBnB.repositories.writes.BookingWriteRepository;
+import com.example.LodgeBnB.saga.SagaEventPublisher;
 import com.example.LodgeBnB.services.concurrency.ConcurrencyControlStrategy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -29,6 +31,8 @@ public class BookingService implements IBookingService {
     private final AirbnbWriteRepository airbnbWriteRepository;
     private final ConcurrencyControlStrategy concurrencyControlStrategy;
     private final RedisWriteRepository redisWriteRepository;
+    private final IIdempotencyService idempotencyService;
+    private final SagaEventPublisher sagaEventPublisher;
 
     @Override
     @Transactional
@@ -75,7 +79,46 @@ public class BookingService implements IBookingService {
     }
 
     @Override
-    public Booking updateBooking(UpdateBookingRequest request) {
-        return null;
+    @Transactional
+    public Booking updateBooking(UpdateBookingRequest updateBookingRequest) {
+        log.info("Updating booking for idempotency key {}", updateBookingRequest.getIdempotencyKey());
+        Booking booking = idempotencyService.findBookingByIdempotencyKey(updateBookingRequest.getIdempotencyKey())
+                .orElseThrow(() -> new RuntimeException("Booking not found"));
+
+        log.info("Booking found for idempotency key {}", updateBookingRequest.getIdempotencyKey());
+        log.info("Booking status: {}", booking.getBookingStatus());
+        if (booking.getBookingStatus() != Booking.BookingStatus.PENDING) {
+            throw new RuntimeException("Booking is not pending");
+        }
+
+        booking.setBookingStatus(updateBookingRequest.getBookingStatus());
+        booking = bookingWriteRepository.save(booking);
+
+        redisWriteRepository.writeBookingReadModel(booking);
+
+        if (updateBookingRequest.getBookingStatus() == Booking.BookingStatus.CONFIRMED) {
+            sagaEventPublisher.publishEvent(
+                    "BOOKING_CONFIRM_REQUESTED",
+                    "CONFIRM_BOOKING",
+                    Map.of(
+                            "bookingId", booking.getId(),
+                            "airbnbId", booking.getAirbnbId(),
+                            "checkInDate", booking.getCheckInDate(),
+                            "checkOutDate", booking.getCheckOutDate()
+                    )
+            );
+        } else if (updateBookingRequest.getBookingStatus() == Booking.BookingStatus.CANCELLED) {
+            sagaEventPublisher.publishEvent(
+                    "BOOKING_CANCEL_REQUESTED",
+                    "CANCEL_BOOKING",
+                    Map.of(
+                            "bookingId", booking.getId(),
+                            "airbnbId", booking.getAirbnbId(),
+                            "checkInDate", booking.getCheckInDate(),
+                            "checkOutDate", booking.getCheckOutDate()
+                    )
+            );
+        }
+        return booking;
     }
 }
