@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -16,13 +18,13 @@ public class BookingReadModel {
 
     private Long userId;
 
-    private Long totalPrice;
+    private Double totalPrice;
 
     private String bookingStatus;
 
     private String idempotencyKey;
 
-    private String checkInDate;
+    private LocalDate checkInDate;
 
-    private String checkOutDate;
+    private LocalDate checkOutDate;
 }

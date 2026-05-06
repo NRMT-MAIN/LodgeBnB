@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface BookingWriteRepository extends JpaRepository<Booking , Long> {
     List<Booking> findByAirbnbId(Long airbnbId);
 
+    Optional<Booking> findByIdempotencyKey(String idempotencyKey);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Booking b WHERE b.id = :id")
     Optional<Booking> findByIdWithLock(@Param("id") Long id);

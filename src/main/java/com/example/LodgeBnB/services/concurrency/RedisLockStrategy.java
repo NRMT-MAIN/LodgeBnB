@@ -26,11 +26,6 @@ public class RedisLockStrategy implements ConcurrencyControlStrategy {
     @Override
     public void releaseLock(Long airbnbId, LocalDate checkInDate, LocalDate checkOutDate) {
         String lockKey = generateLockKey(airbnbId, checkInDate, checkOutDate);
-        String lockValue = redisTemplate.opsForValue().get(lockKey);
-
-        if (lockValue == null) {
-            throw new RuntimeException("No lock found for Airbnb " + airbnbId);
-        }
         redisTemplate.delete(lockKey);
     }
 

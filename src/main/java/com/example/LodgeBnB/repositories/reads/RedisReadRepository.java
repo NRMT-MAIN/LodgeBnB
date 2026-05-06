@@ -14,9 +14,9 @@ import java.util.Set;
 @Repository
 @RequiredArgsConstructor
 public class RedisReadRepository {
-    private static final String AIRBNB_KEY_PREFIX = "airbnb:";
-    private static final String BOOKING_KEY_PREFIX = "booking:";
-    private static final String AVAILABILITY_KEY_PREFIX = "availability:";
+    public static final String AIRBNB_KEY_PREFIX = "airbnb:";
+    public static final String BOOKING_KEY_PREFIX = "booking:";
+    public static final String AVAILABILITY_KEY_PREFIX = "availability:";
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -81,5 +81,32 @@ public class RedisReadRepository {
                 })
                 .filter(airbnb -> airbnb != null)
                 .toList();
+    }
+
+    public BookingReadModel findBookingByIdempotencyKey(String idempotencyKey) {
+        Set<String> keys = redisTemplate.keys(BOOKING_KEY_PREFIX + "*");
+
+        if(keys == null || keys.isEmpty()) {
+            return null;
+        }
+
+        return keys.stream()
+                .map(key -> {
+                    String value = redisTemplate.opsForValue().get(key);
+                    if (value != null) {
+                        try {
+                            BookingReadModel booking = objectMapper.readValue(value, BookingReadModel.class);
+                            if (booking.getIdempotencyKey().equals(idempotencyKey)) {
+                                return booking;
+                            }
+                        } catch (Exception e) {
+                            throw new RuntimeException("Failed to deserialize BookingReadModel from Redis", e);
+                        }
+                    }
+                    return null;
+                })
+                .filter(booking -> booking != null)
+                .findFirst()
+                .orElse(null);
     }
 }

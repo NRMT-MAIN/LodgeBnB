@@ -1,0 +1,38 @@
+package com.example.LodgeBnB.saga;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import tools.jackson.databind.ObjectMapper;
+
+import java.util.concurrent.TimeUnit;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class SagaEventConsumer {
+    private final String SAGA_QUEUE = "saga:events";
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
+    private final SagaEventProcessor sagaEventProcessor;
+
+
+    @Scheduled(fixedDelay = 500)
+    public void consumeEvents() {
+        try {
+            String eventJson = redisTemplate.opsForList().leftPop(SAGA_QUEUE, 1, TimeUnit.SECONDS);
+            log.info("Event JSON: {}", eventJson);
+            if(eventJson != null && !eventJson.isEmpty()) {
+                SagaEvent sagaEvent = objectMapper.readValue(eventJson, SagaEvent.class);
+                log.info("Processing saga event: {}", sagaEvent.getSagaId());
+                sagaEventProcessor.processEvent(sagaEvent);
+                log.info("Saga event processed successfully for saga id: {}", sagaEvent.getSagaId());
+            }
+        } catch (Exception e) {
+            log.error("Error processing saga event: {}", e.getMessage());
+            throw new RuntimeException("Failed to process saga event", e);
+        }
+    }
+}
