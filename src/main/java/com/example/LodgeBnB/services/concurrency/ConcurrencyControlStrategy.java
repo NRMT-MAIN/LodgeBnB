@@ -8,5 +8,5 @@ import java.util.List;
 public interface ConcurrencyControlStrategy {
     void releaseLock(Long airbnbId , LocalDate checkInDate, LocalDate checkOutDate);
 
-    List<Availability> lockAndCheckAvailability(Long airbnbId, LocalDate checkInDate, LocalDate checkOutDate);
+    List<Availability> lockAndCheckAvailability(Long airbnbId, LocalDate checkInDate, LocalDate checkOutDate , Long userId);
 }

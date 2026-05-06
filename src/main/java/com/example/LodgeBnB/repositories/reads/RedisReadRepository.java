@@ -8,6 +8,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.List;
+import java.util.Set;
+
 @Repository
 @RequiredArgsConstructor
 public class RedisReadRepository {
@@ -55,5 +58,28 @@ public class RedisReadRepository {
             }
         }
         return null;
+    }
+
+    public List<AirbnbReadModel> findAllAirbnbs() {
+        Set<String> keys = redisTemplate.keys(AIRBNB_KEY_PREFIX + "*");
+
+        if(keys == null || keys.isEmpty()) {
+            return List.of();
+        }
+
+        return keys.stream()
+                .map(key -> {
+                    String value = redisTemplate.opsForValue().get(key);
+                    if (value != null) {
+                        try {
+                            return objectMapper.readValue(value, AirbnbReadModel.class);
+                        } catch (Exception e) {
+                            throw new RuntimeException("Failed to deserialize AirbnbReadModel from Redis", e);
+                        }
+                    }
+                    return null;
+                })
+                .filter(airbnb -> airbnb != null)
+                .toList();
     }
 }
